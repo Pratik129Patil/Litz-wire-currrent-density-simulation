@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Litz Wire Strand Electromagnetic Field &amp; Current Density Visualizer</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  html, body {
+    width: 100%;
+    height: 100%;
+    background-color: #0b1120;
+    color: #e2e8f0;
+    overflow: hidden;
+  }
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+  .title-block h1 {
+    font-size: 0.96rem;
+    font-weight: 600;
+    color: #f8fafc;
+    line-height: 1.2;
+  }
+  .title-block p {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-top: 1px;
+  }
+  .camera-presets {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    background-color: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid #334155;
+    padding: 4px 9px;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background-color: #334155;
+    color: #ffffff;
+  }
+  .btn.active {
+    background-color: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+    font-weight: 600;
+  }
+  .btn.accent {
+    background-color: #0f766e;
+    border-color: #14b8a6;
+    color: #f0fdfa;
+    font-weight: 600;
+  }
+  .btn.accent:hover {
+    background-color: #115e59;
+  }
+  .workspace {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .canvas-pane {
+    position: relative;
+    flex: 1.45;
+    min-width: 0;
+    height: 100%;
+    background: radial-gradient(circle at center, #111b33 0%, #080d19 100%);
+    cursor: grab;
+    user-select: none;
+    border-right: 1px solid #1e293b;
+  }
+  .canvas-pane:active {
+    cursor: grabbing;
+  }
+  canvas#plot3d {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .formula-overlay {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid #1e293b;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 0.72rem;
+    color: #cbd5e1;
+    pointer-events: none;
+    max-width: calc(100% - 24px);
+  }
+  .formula-overlay .eq-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #38bdf8;
+    margin-bottom: 2px;
+    font-weight: 600;
+  }
+  .legend-box {
+    position: absolute;
+    bottom: 10px;
+    left: 12px;
+    background: rgba(15, 23, 42, 0.86);
+    border: 1px solid #1e293b;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 0.68rem;
+    pointer-events: none;
+  }
+  .legend-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+    color: #cbd5e1;
+  }
+  .gradient-bar {
+    width: 130px;
+    height: 7px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #1d4ed8 0%, #06b6d4 25%, #64748b 50%, #f59e0b 75%, #dc2626 100%);
+  }
+  .legend-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2px;
+    color: #94a3b8;
+    font-size: 0.64rem;
+  }
+  .peak-box {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    background: rgba(15, 23, 42, 0.86);
+    border: 1px solid #1e293b;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 0.68rem;
+    text-align: right;
+    pointer-events: none;
+  }
+  .peak-box strong {
+    color: #38bdf8;
+    font-size: 0.78rem;
+  }
+  .sidebar-pane {
+    flex: 1;
+    min-width: 310px;
+    max-width: 430px;
+    height: 100%;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background-color: #131c31;
+    border-bottom: 1px solid #1e293b;
+    padding: 6px 10px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .metric-item span.label {
+    display: block;
+    font-size: 0.64rem;
+    color: #94a3b8;
+  }
+  .metric-item span.val {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+  .wave-strip {
+    background-color: #090e1a;
+    padding: 5px 12px;
+    border-bottom: 1px solid #1e293b;
+    flex-shrink: 0;
+  }
+  .wave-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.66rem;
+    margin-bottom: 2px;
+  }
+  canvas#wave2d {
+    width: 100%;
+    height: 36px;
+    display: block;
+  }
+  .controls-body {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+  .control-group-title {
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .btn-group {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .sliders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .slider-box {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #cbd5e1;
+  }
+  .slider-header span.readout {
+    font-weight: 600;
+    color: #38bdf8;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] {
+    width: 100%;
+    height: 5px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+  }
+  .phase-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #131c31;
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid #1e293b;
+  }
+  .phase-slider-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .repo-footer {
+    margin-top: auto;
+    padding-top: 6px;
+    border-top: 1px solid #1e293b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.66rem;
+    color: #64748b;
+  }
+  .repo-footer a {
+    color: #38bdf8;
+    text-decoration: none;
+  }
+  .repo-footer a:hover {
+    text-decoration: underline;
+  }
+  @media (max-width: 760px) {
+    html, body {
+      overflow: auto;
+      height: auto;
+    }
+    .workspace {
+      flex-direction: column;
+      overflow: visible;
+    }
+    .canvas-pane {
+      height: 360px;
+      flex: none;
+      border-right: none;
+      border-bottom: 1px solid #1e293b;
+    }
+    .sidebar-pane {
+      max-width: none;
+      overflow: visible;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <header>
+    <div class="title-block">
+      <h1>Single-Strand Litz Wire 3D Electromagnetic Visualizer</h1>
+      <p>Drag to rotate 360° • Scroll to zoom • Modified Bessel Series Formulation</p>
+    </div>
+    <div class="camera-presets">
+      <button class="btn" id="btnIso">3D Iso</button>
+      <button class="btn" id="btnTop">Top (2D)</button>
+      <button class="btn" id="btnSide">Side (+y)</button>
+      <button class="btn accent" id="btnSlide7">Slide 7 Az View</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <div class="canvas-pane" id="canvasWrap">
+      <canvas id="plot3d"></canvas>
+
+      <div class="formula-overlay">
+        <div class="eq-title" id="eqLabel">Total Current Density</div>
+        <div id="eqText">Jz,total(r, φ) = (γ Is / 2πa) [I0(γr)/I1(γa)] + 2γ Ho [I1(γr)/I0(γa)] cos(φ)</div>
+      </div>
+
+      <div class="legend-box">
+        <div class="legend-header">
+          <span>Heatmap Scale</span>
+          <span>Normalized</span>
+        </div>
+        <div class="gradient-bar"></div>
+        <div class="legend-ticks">
+          <span>-1.0</span>
+          <span>0</span>
+          <span>+1.0</span>
+        </div>
+      </div>
+
+      <div class="peak-box">
+        <div>Spatial Peak: <strong id="peakVal">0.00 A/mm²</strong></div>
+        <div style="color:#94a3b8; margin-top:1px;">Series Terms (N): <span id="termsVal">22</span></div>
+      </div>
+    </div>
+
+    <div class="sidebar-pane">
+      <div class="metrics-strip">
+        <div class="metric-item">
+          <span class="label">Skin Depth (δ)</span>
+          <span class="val" id="skinDepthVal">0.148 mm</span>
+        </div>
+        <div class="metric-item">
+          <span class="label">Phase (ωt)</span>
+          <span class="val" id="phaseRadVal">0.00 rad</span>
+        </div>
+        <div class="metric-item">
+          <span class="label">d<sub>c</sub> / δ Ratio</span>
+          <span class="val" id="ratioVal">4.74</span>
+        </div>
+      </div>
+
+      <div class="wave-strip">
+        <div class="wave-labels">
+          <span style="color:#4ade80;">• B<sub>ext</sub>(t) = -μ<sub>o</sub>H<sub>o</sub> cos(ωt) ŷ</span>
+          <span style="color:#60a5fa;">• i<sub>s</sub>(t) = I<sub>s</sub> cos(ωt) ẑ</span>
+        </div>
+        <canvas id="wave2d"></canvas>
+      </div>
+
+      <div class="controls-body">
+        <div>
+          <div class="control-group-title">Field Formulation Display</div>
+          <div class="btn-group" id="modeGroup">
+            <button class="btn active" data-mode="total">Jz Total</button>
+            <button class="btn" data-mode="skin">Jz Skin</button>
+            <button class="btn" data-mode="prox">Jz Prox</button>
+            <button class="btn" data-mode="ez">Ez Field</button>
+            <button class="btn" data-mode="az">Az Potential</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="control-group-title">Transverse B<sub>ext</sub> Field</div>
+          <button class="btn active" id="btnBext" style="background-color:#15803d; border-color:#22c55e;">Arrows Active (-y)</button>
+        </div>
+
+        <div class="sliders-list">
+          <div class="slider-box">
+            <div class="slider-header">
+              <span>Strand Diameter (d<sub>c</sub>)</span>
+              <span class="readout" id="dcOut">0.70 mm</span>
+            </div>
+            <input type="range" id="dcSlider" min="0.05" max="2.00" step="0.01" value="0.70">
+          </div>
+
+          <div class="slider-box">
+            <div class="slider-header">
+              <span>Wave Frequency (f)</span>
+              <span class="readout" id="freqOut">200 kHz</span>
+            </div>
+            <input type="range" id="freqSlider" min="10" max="1000" step="5" value="200">
+          </div>
+
+          <div class="slider-box">
+            <div class="slider-header">
+              <span>Strand Current (I<sub>s</sub>)</span>
+              <span class="readout" id="isOut">5.0 A</span>
+            </div>
+            <input type="range" id="isSlider" min="0.5" max="20.0" step="0.5" value="5.0">
+          </div>
+
+          <div class="slider-box">
+            <div class="slider-header">
+              <span>External Field Intensity (H<sub>o</sub>)</span>
+              <span class="readout" id="hoOut">400 A/m</span>
+            </div>
+            <input type="range" id="hoSlider" min="50" max="2000" step="25" value="400">
+          </div>
+        </div>
+
+        <div class="phase-box">
+          <button class="btn active" id="btnPlay" style="min-width:68px;">▶ Play</button>
+          <div class="phase-slider-wrap">
+            <div class="slider-header">
+              <span>AC Phase Cycle (ωt)</span>
+              <span class="readout" id="wtOut">0.00 rad (0°)</span>
+            </div>
+            <input type="range" id="wtSlider" min="0" max="6.283185" step="0.01" value="0">
+          </div>
+        </div>
+
+        <div class="repo-footer">
+          <span>Copper (σ = 5.8×10⁷ S/m)</span>
+          <a href="https://github.com/Pratik129Patil/Litz-wire-currrent-density-simulation" target="_blank" rel="noopener">GitHub Source ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const SIGMA = 5.8e7;
+  const MU0 = 4 * Math.PI * 1e-7;
+  const SERIES_TERMS = 22;
+
+  const state = {
+    mode: "total",
+    showBext: true,
+    dc_mm: 0.70,
+    freq_khz: 200,
+    Is: 5.0,
+    Ho: 400,
+    wt: 0.0,
+    playing: false,
+    yaw: -0.62,
+    pitch: 0.52,
+    zoom: 1.05
+  };
+
+  const formulas = {
+    total: {
+      title: "Total Current Density (Slide 8)",
+      eq: "Jz,total(r, φ) = (γ Is / 2πa) [I0(γr)/I1(γa)] + 2γ Ho [I1(γr)/I0(γa)] cos(φ)"
+    },
+    skin: {
+      title: "Skin-Effect Current Density",
+      eq: "Jz,skin(r) = (γ Is / 2πa) · [ I0(γr) / I1(γa) ]"
+    },
+    prox: {
+      title: "Proximity-Effect Eddy Current Density",
+      eq: "Jz,prox(r, φ) = 2γ Ho · [ I1(γr) / I0(γa) ] cos(φ)"
+    },
+    ez: {
+      title: "Axial Electric Field Intensity",
+      eq: "Ez(r, φ) = Jz,total(r, φ) / σ   (∇²Ez − γ²Ez = 0)"
+    },
+    az: {
+      title: "Axial Magnetic Vector Potential (Slide 7)",
+      eq: "Az(r, φ) = (j / ωσ) Jz,total(r, φ)   (Bext = ∇ × Az âz)"
+    }
+  };
+
+  // Complex arithmetic helpers
+  function cAdd(a, b) { return { re: a.re + b.re, im: a.im + b.im }; }
+  function cMul(a, b) { return { re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }; }
+  function cScale(a, s) { return { re: a.re * s, im: a.im * s }; }
+  function cAbs(a) { return Math.hypot(a.re, a.im); }
+  function cDiv(a, b) {
+    const denom = b.re * b.re + b.im * b.im || 1e-30;
+    return {
+      re: (a.re * b.re + a.im * b.im) / denom,
+      im: (a.im * b.re - a.re * b.im) / denom
+    };
+  }
+
+  // Modified Bessel I0(z) and I1(z) via explicit power series sum
+  function besselI0(z) {
+    const halfZ = cScale(z, 0.5);
+    const halfZ2 = cMul(halfZ, halfZ);
+    let term = { re: 1, im: 0 };
+    let sum = { re: 1, im: 0 };
+    for (let k = 1; k <= SERIES_TERMS; k++) {
+      term = cScale(cMul(term, halfZ2), 1 / (k * k));
+      sum = cAdd(sum, term);
+    }
+    return sum;
+  }
+
+  function besselI1(z) {
+    const halfZ = cScale(z, 0.5);
+    const halfZ2 = cMul(halfZ, halfZ);
+    let term = { re: halfZ.re, im: halfZ.im };
+    let sum = { re: term.re, im: term.im };
+    for (let k = 1; k <= SERIES_TERMS; k++) {
+      term = cScale(cMul(term, halfZ2), 1 / (k * (k + 1)));
+      sum = cAdd(sum, term);
+    }
+    return sum;
+  }
+
+  // Polar mesh grid
+  const NR = 28;
+  const NPHI = 64;
+  let meshData = [];
+  let spatialPeakPhysical = 0;
+
+  function computeFieldGrid() {
+    const a = (state.dc_mm * 1e-3) / 2;
+    const f = state.freq_khz * 1e3;
+    const omega = 2 * Math.PI * f;
+    const delta = Math.sqrt(2 / (omega * MU0 * SIGMA));
+    const gamma = { re: 1 / delta, im: 1 / delta };
+
+    const gammaA = cMul(gamma, { re: a, im: 0 });
+    const I0_ga = besselI0(gammaA);
+    const I1_ga = besselI1(gammaA);
+
+    const skinCoeff = cScale(gamma, state.Is / (2 * Math.PI * a));
+    const proxCoeff = cScale(gamma, 2 * state.Ho);
+
+    // Precompute radial Bessel values
+    const radI0 = [];
+    const radI1 = [];
+    for (let i = 0; i <= NR; i++) {
+      const rNorm = i / NR;
+      const gr = cScale(gamma, rNorm * a);
+      radI0.push(besselI0(gr));
+      radI1.push(besselI1(gr));
+    }
+
+    let maxMag = 1e-30;
+    const grid = [];
+
+    for (let i = 0; i <= NR; i++) {
+      const rNorm = i / NR;
+      const skinRatio = cDiv(radI0[i], I1_ga);
+      const Jskin = cMul(skinCoeff, skinRatio);
+      const proxRad = cMul(proxCoeff, cDiv(radI1[i], I0_ga));
+
+      const row = [];
+      for (let j = 0; j <= NPHI; j++) {
+        const phi = (j / NPHI) * 2 * Math.PI;
+        const cosP = Math.cos(phi);
+        const Jprox = cScale(proxRad, cosP);
+
+        let valComplex;
+        if (state.mode === "skin") {
+          valComplex = Jskin;
+        } else if (state.mode === "prox") {
+          valComplex = Jprox;
+        } else {
+          const Jtot = cAdd(Jskin, Jprox);
+          if (state.mode === "total") {
+            valComplex = Jtot;
+          } else if (state.mode === "ez") {
+            valComplex = cScale(Jtot, 1 / SIGMA);
+          } else {
+            // Az = (j / (omega * sigma)) * Jz
+            const factor = 1 / (omega * SIGMA);
+            valComplex = { re: -Jtot.im * factor, im: Jtot.re * factor };
+          }
+        }
+
+        const mag = cAbs(valComplex);
+        if (mag > maxMag) maxMag = mag;
+
+        row.push({
+          x: rNorm * Math.cos(phi),
+          y: rNorm * Math.sin(phi),
+          re: valComplex.re,
+          im: valComplex.im
+        });
+      }
+      grid.push(row);
+    }
+
+    // Format spatial peak in intuitive physical units
+    let peakText = "";
+    if (state.mode === "ez") {
+      peakText = (maxMag * 1e3).toFixed(2) + " mV/m";
+    } else if (state.mode === "az") {
+      peakText = (maxMag * 1e9).toFixed(2) + " nWb/m";
+    } else {
+      peakText = (maxMag / 1e6).toFixed(2) + " A/mm²";
+    }
+    document.getElementById("peakVal").textContent = peakText;
+    document.getElementById("skinDepthVal").textContent = (delta * 1e3).toFixed(3) + " mm";
+    document.getElementById("ratioVal").textContent = ((state.dc_mm * 1e-3) / delta).toFixed(2);
+
+    meshData = { grid, maxMag };
+  }
+
+  function valueToColor(v) {
+    // v in [-1, 1]
+    const t = Math.max(-1, Math.min(1, v));
+    let r, g, b;
+    if (t < 0) {
+      const u = t + 1; // 0 at -1, 1 at 0
+      if (u < 0.5) {
+        const k = u * 2;
+        r = 29 + k * (6 - 29);
+        g = 78 + k * (182 - 78);
+        b = 216 + k * (212 - 216);
+      } else {
+        const k = (u - 0.5) * 2;
+        r = 6 + k * (100 - 6);
+        g = 182 + k * (116 - 182);
+        b = 212 + k * (139 - 212);
+      }
+    } else {
+      const u = t; // 0 at 0, 1 at +1
+      if (u < 0.5) {
+        const k = u * 2;
+        r = 100 + k * (245 - 100);
+        g = 116 + k * (158 - 116);
+        b = 139 + k * (11 - 139);
+      } else {
+        const k = (u - 0.5) * 2;
+        r = 245 + k * (220 - 245);
+        g = 158 + k * (38 - 158);
+        b = 11 + k * (38 - 11);
+      }
+    }
+    return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+  }
+
+  const canvas3d = document.getElementById("plot3d");
+  const ctx3d = canvas3d.getContext("2d");
+  const canvasWave = document.getElementById("wave2d");
+  const ctxWave = canvasWave.getContext("2d");
+
+  function project3D(x, y, z, cx, cy, scale) {
+    const cosY = Math.cos(state.yaw);
+    const sinY = Math.sin(state.yaw);
+    const x1 = x * cosY - y * sinY;
+    const y1 = x * sinY + y * cosY;
+
+    const cosP = Math.cos(state.pitch);
+    const sinP = Math.sin(state.pitch);
+    const y2 = y1 * cosP - z * sinP;
+    const z2 = y1 * sinP + z * cosP;
+
+    const fov = 4.2;
+    const perspective = fov / (fov + y2 + 1.5);
+    return {
+      px: cx + x1 * scale * perspective,
+      py: cy - z2 * scale * perspective,
+      depth: y2
+    };
+  }
+
+  function render3D() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas3d.getBoundingClientRect();
+    if (canvas3d.width !== Math.round(rect.width * dpr) || canvas3d.height !== Math.round(rect.height * dpr)) {
+      canvas3d.width = Math.round(rect.width * dpr);
+      canvas3d.height = Math.round(rect.height * dpr);
+    }
+    ctx3d.save();
+    ctx3d.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    ctx3d.clearRect(0, 0, w, h);
+
+    const cx = w * 0.5;
+    const cy = h * 0.54;
+    const scale = Math.min(w, h) * 0.48 * state.zoom;
+    const zHeightScale = 0.52;
+
+    const cosWt = Math.cos(state.wt);
+    const sinWt = Math.sin(state.wt);
+
+    // Draw subtle z=0 reference disk outline
+    ctx3d.beginPath();
+    for (let j = 0; j <= 64; j++) {
+      const ang = (j / 64) * 2 * Math.PI;
+      const p = project3D(Math.cos(ang), Math.sin(ang), 0, cx, cy, scale);
+      if (j === 0) ctx3d.moveTo(p.px, p.py);
+      else ctx3d.lineTo(p.px, p.py);
+    }
+    ctx3d.strokeStyle = "rgba(148, 163, 184, 0.25)";
+    ctx3d.lineWidth = 1;
+    ctx3d.setLineDash([4, 4]);
+    ctx3d.stroke();
+    ctx3d.setLineDash([]);
+
+    // Build quads for painter's algorithm sorting
+    const { grid, maxMag } = meshData;
+    const pts = [];
+    for (let i = 0; i <= NR; i++) {
+      const rowPts = [];
+      for (let j = 0; j <= NPHI; j++) {
+        const cell = grid[i][j];
+        // Re((re + j*im) * (cosWt + j*sinWt)) = re*cosWt - im*sinWt
+        const inst = cell.re * cosWt - cell.im * sinWt;
+        const normVal = inst / maxMag;
+        const proj = project3D(cell.x, cell.y, normVal * zHeightScale, cx, cy, scale);
+        rowPts.push({ ...proj, normVal });
+      }
+      pts.push(rowPts);
+    }
+
+    const quads = [];
+    for (let i = 0; i < NR; i++) {
+      for (let j = 0; j < NPHI; j++) {
+        const p00 = pts[i][j];
+        const p10 = pts[i + 1][j];
+        const p11 = pts[i + 1][j + 1];
+        const p01 = pts[i][j + 1];
+        const avgDepth = (p00.depth + p10.depth + p11.depth + p01.depth) * 0.25;
+        const avgVal = (p00.normVal + p10.normVal + p11.normVal + p01.normVal) * 0.25;
+        quads.push({ p00, p10, p11, p01, avgDepth, avgVal });
+      }
+    }
+    quads.sort((a, b) => b.avgDepth - a.avgDepth);
+
+    for (let q of quads) {
+      ctx3d.beginPath();
+      ctx3d.moveTo(q.p00.px, q.p00.py);
+      ctx3d.lineTo(q.p10.px, q.p10.py);
+      ctx3d.lineTo(q.p11.px, q.p11.py);
+      ctx3d.lineTo(q.p01.px, q.p01.py);
+      ctx3d.closePath();
+      ctx3d.fillStyle = valueToColor(q.avgVal);
+      ctx3d.fill();
+      ctx3d.strokeStyle = "rgba(15, 23, 42, 0.28)";
+      ctx3d.lineWidth = 0.5;
+      ctx3d.stroke();
+    }
+
+    // Coordinate Axes (+x, +y, +az)
+    const origin = project3D(0, 0, 0, cx, cy, scale);
+    const xEnd = project3D(1.32, 0, 0, cx, cy, scale);
+    const yEnd = project3D(0, 1.32, 0, cx, cy, scale);
+    const zEnd = project3D(0, 0, 0.78, cx, cy, scale);
+
+    function drawAxis(p0, p1, color, label) {
+      ctx3d.beginPath();
+      ctx3d.moveTo(p0.px, p0.py);
+      ctx3d.lineTo(p1.px, p1.py);
+      ctx3d.strokeStyle = color;
+      ctx3d.lineWidth = 1.6;
+      ctx3d.stroke();
+
+      ctx3d.fillStyle = color;
+      ctx3d.font = "600 11px sans-serif";
+      ctx3d.fillText(label, p1.px + 5, p1.py + 3);
+    }
+
+    drawAxis(origin, xEnd, "#f87171", "+x (φ=0)");
+    drawAxis(origin, yEnd, "#38bdf8", "+y (φ=π/2)");
+    drawAxis(origin, zEnd, "#e2e8f0", "+az");
+
+    // Oscillating Transverse Bext(t) = -mu0 * Ho * cos(wt) * y_hat
+    if (state.showBext) {
+      const bextFactor = -cosWt; // -1 at wt=0 (-y), +1 at wt=pi (+y)
+      if (Math.abs(bextFactor) > 0.04) {
+        const xPositions = [-0.75, -0.38, 0, 0.38, 0.75];
+        const halfLen = 0.85 * Math.abs(bextFactor);
+        const dir = Math.sign(bextFactor);
+
+        ctx3d.strokeStyle = "#4ade80";
+        ctx3d.fillStyle = "#4ade80";
+        ctx3d.lineWidth = 1.8;
+
+        for (let xp of xPositions) {
+          const yStart = -dir * halfLen;
+          const yFinish = dir * halfLen;
+          const pA = project3D(xp, yStart, 0.14, cx, cy, scale);
+          const pB = project3D(xp, yFinish, 0.14, cx, cy, scale);
+
+          ctx3d.beginPath();
+          ctx3d.moveTo(pA.px, pA.py);
+          ctx3d.lineTo(pB.px, pB.py);
+          ctx3d.stroke();
+
+          // Arrowhead at pB
+          const ang = Math.atan2(pB.py - pA.py, pB.px - pA.px);
+          const headLen = 7;
+          ctx3d.beginPath();
+          ctx3d.moveTo(pB.px, pB.py);
+          ctx3d.lineTo(pB.px - headLen * Math.cos(ang - 0.42), pB.py - headLen * Math.sin(ang - 0.42));
+          ctx3d.lineTo(pB.px - headLen * Math.cos(ang + 0.42), pB.py - headLen * Math.sin(ang + 0.42));
+          ctx3d.closePath();
+          ctx3d.fill();
+        }
+
+        const labelPos = project3D(-0.85, dir * (halfLen + 0.15), 0.22, cx, cy, scale);
+        ctx3d.font = "600 11px sans-serif";
+        ctx3d.fillText(dir < 0 ? "Bext (-y)" : "Bext (+y)", labelPos.px, labelPos.py);
+      }
+    }
+
+    ctx3d.restore();
+  }
+
+  function renderWave2D() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvasWave.getBoundingClientRect();
+    if (canvasWave.width !== Math.round(rect.width * dpr) || canvasWave.height !== Math.round(rect.height * dpr)) {
+      canvasWave.width = Math.round(rect.width * dpr);
+      canvasWave.height = Math.round(rect.height * dpr);
+    }
+    ctxWave.save();
+    ctxWave.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const midY = h * 0.5;
+    const amp = h * 0.36;
+
+    ctxWave.clearRect(0, 0, w, h);
+
+    // Zero baseline
+    ctxWave.beginPath();
+    ctxWave.moveTo(0, midY);
+    ctxWave.lineTo(w, midY);
+    ctxWave.strokeStyle = "rgba(148, 163, 184, 0.25)";
+    ctxWave.lineWidth = 1;
+    ctxWave.stroke();
+
+    // Blue curve: is(t) ~ +cos(wt) -> y = midY - amp * cos(theta)
+    ctxWave.beginPath();
+    for (let px = 0; px <= w; px += 2) {
+      const theta = (px / w) * 2 * Math.PI;
+      const py = midY - amp * Math.cos(theta);
+      if (px === 0) ctxWave.moveTo(px, py);
+      else ctxWave.lineTo(px, py);
+    }
+    ctxWave.strokeStyle = "#60a5fa";
+    ctxWave.lineWidth = 1.6;
+    ctxWave.stroke();
+
+    // Green curve: Bext(t) ~ -cos(wt) -> y = midY - amp * (-cos(theta))
+    ctxWave.beginPath();
+    for (let px = 0; px <= w; px += 2) {
+      const theta = (px / w) * 2 * Math.PI;
+      const py = midY + amp * Math.cos(theta);
+      if (px === 0) ctxWave.moveTo(px, py);
+      else ctxWave.lineTo(px, py);
+    }
+    ctxWave.strokeStyle = "#4ade80";
+    ctxWave.lineWidth = 1.6;
+    ctxWave.stroke();
+
+    // Current wt marker line
+    const markerX = (state.wt / (2 * Math.PI)) * w;
+    ctxWave.beginPath();
+    ctxWave.moveTo(markerX, 2);
+    ctxWave.lineTo(markerX, h - 2);
+    ctxWave.strokeStyle = "#f8fafc";
+    ctxWave.lineWidth = 1.5;
+    ctxWave.stroke();
+
+    ctxWave.restore();
+  }
+
+  function updatePhaseDisplay() {
+    const deg = Math.round((state.wt * 180) / Math.PI);
+    document.getElementById("wtOut").textContent = `${state.wt.toFixed(2)} rad (${deg}°)`;
+    document.getElementById("phaseRadVal").textContent = `${state.wt.toFixed(2)} rad`;
+    document.getElementById("wtSlider").value = state.wt;
+  }
+
+  function refreshAll() {
+    computeFieldGrid();
+    render3D();
+    renderWave2D();
+  }
+
+  // Event bindings
+  document.querySelectorAll("#modeGroup .btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#modeGroup .btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.mode = btn.dataset.mode;
+      document.getElementById("eqLabel").textContent = formulas[state.mode].title;
+      document.getElementById("eqText").textContent = formulas[state.mode].eq;
+      refreshAll();
+    });
+  });
+
+  const btnBext = document.getElementById("btnBext");
+  btnBext.addEventListener("click", () => {
+    state.showBext = !state.showBext;
+    btnBext.textContent = state.showBext ? "Arrows Active (-y)" : "Arrows Hidden";
+    btnBext.style.backgroundColor = state.showBext ? "#15803d" : "#1e293b";
+    btnBext.style.borderColor = state.showBext ? "#22c55e" : "#334155";
+    render3D();
+  });
+
+  document.getElementById("dcSlider").addEventListener("input", e => {
+    state.dc_mm = parseFloat(e.target.value);
+    document.getElementById("dcOut").textContent = state.dc_mm.toFixed(2) + " mm";
+    refreshAll();
+  });
+
+  document.getElementById("freqSlider").addEventListener("input", e => {
+    state.freq_khz = parseFloat(e.target.value);
+    document.getElementById("freqOut").textContent = state.freq_khz + " kHz";
+    refreshAll();
+  });
+
+  document.getElementById("isSlider").addEventListener("input", e => {
+    state.Is = parseFloat(e.target.value);
+    document.getElementById("isOut").textContent = state.Is.toFixed(1) + " A";
+    refreshAll();
+  });
+
+  document.getElementById("hoSlider").addEventListener("input", e => {
+    state.Ho = parseFloat(e.target.value);
+    document.getElementById("hoOut").textContent = state.Ho + " A/m";
+    refreshAll();
+  });
+
+  document.getElementById("wtSlider").addEventListener("input", e => {
+    state.wt = parseFloat(e.target.value);
+    updatePhaseDisplay();
+    render3D();
+    renderWave2D();
+  });
+
+  const btnPlay = document.getElementById("btnPlay");
+  btnPlay.addEventListener("click", () => {
+    state.playing = !state.playing;
+    btnPlay.textContent = state.playing ? "⏸ Pause" : "▶ Play";
+  });
+
+  // Camera presets
+  document.getElementById("btnIso").addEventListener("click", () => {
+    state.yaw = -0.62;
+    state.pitch = 0.52;
+    state.zoom = 1.05;
+    render3D();
+  });
+
+  document.getElementById("btnTop").addEventListener("click", () => {
+    state.yaw = 0;
+    state.pitch = Math.PI / 2 - 0.001;
+    state.zoom = 1.08;
+    render3D();
+  });
+
+  document.getElementById("btnSide").addEventListener("click", () => {
+    state.yaw = 0;
+    state.pitch = 0.04;
+    state.zoom = 1.08;
+    render3D();
+  });
+
+  document.getElementById("btnSlide7").addEventListener("click", () => {
+    state.mode = "az";
+    document.querySelectorAll("#modeGroup .btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.mode === "az");
+    });
+    document.getElementById("eqLabel").textContent = formulas.az.title;
+    document.getElementById("eqText").textContent = formulas.az.eq;
+
+    state.showBext = true;
+    btnBext.textContent = "Arrows Active (-y)";
+    btnBext.style.backgroundColor = "#15803d";
+    btnBext.style.borderColor = "#22c55e";
+
+    // At wt = 3*pi/4 (2.36 rad, 135 deg), Az > 0 on +x and Az < 0 on -x
+    state.wt = (3 * Math.PI) / 4;
+    updatePhaseDisplay();
+
+    state.yaw = -0.35;
+    state.pitch = 0.85;
+    state.zoom = 1.05;
+    refreshAll();
+  });
+
+  // Mouse & touch 360-degree rotation
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  canvas3d.addEventListener("mousedown", e => {
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
+  window.addEventListener("mouseup", () => { dragging = false; });
+  window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    state.yaw += dx * 0.008;
+    state.pitch += dy * 0.008;
+    render3D();
+  });
+
+  canvas3d.addEventListener("touchstart", e => {
+    if (e.touches.length === 1) {
+      dragging = true;
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  window.addEventListener("touchend", () => { dragging = false; });
+  window.addEventListener("touchmove", e => {
+    if (!dragging || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - lastX;
+    const dy = e.touches[0].clientY - lastY;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+    state.yaw += dx * 0.008;
+    state.pitch += dy * 0.008;
+    render3D();
+  }, { passive: true });
+
+  canvas3d.addEventListener("wheel", e => {
+    e.preventDefault();
+    state.zoom *= e.deltaY < 0 ? 1.07 : 0.93;
+    state.zoom = Math.max(0.45, Math.min(2.6, state.zoom));
+    render3D();
+  }, { passive: false });
+
+  window.addEventListener("resize", () => {
+    render3D();
+    renderWave2D();
+  });
+
+  function animate() {
+    if (state.playing) {
+      state.wt += 0.035;
+      if (state.wt > 2 * Math.PI) state.wt -= 2 * Math.PI;
+      updatePhaseDisplay();
+      render3D();
+      renderWave2D();
+    }
+    requestAnimationFrame(animate);
+  }
+
+  updatePhaseDisplay();
+  refreshAll();
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
